@@ -1,4 +1,4 @@
-package br.com.fiap.postech.fastfood.clean.entity
+package br.com.fiap.postech.fastfood.clean.domain.entity
 
 import br.com.fiap.postech.fastfood.application.domain.valueObjets.*
 import java.util.UUID

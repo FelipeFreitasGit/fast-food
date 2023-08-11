@@ -1,6 +1,6 @@
-package br.com.fiap.postech.fastfood.clean.usecase
+package br.com.fiap.postech.fastfood.clean.domain.usecase
 
-import br.com.fiap.postech.fastfood.clean.usecase.repository.ProdutoRepository
+import br.com.fiap.postech.fastfood.clean.domain.repository.ProdutoRepository
 
 class CadastrarProduto(
     private val produtoRepository: ProdutoRepository
