@@ -15,6 +15,8 @@ spec:
       - name: api-fast-food
         image: rafaelcarmonagil/fast-food:2.0
         env:
+        - name: spring.profiles.active
+          value: kubernetes
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -47,7 +49,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: api-fast-food-svc
+  name: apifastfoodsvc
 spec:
   selector:
     app: api-fast-food

@@ -5,6 +5,6 @@ metadata:
   labels:
     app: postgres
 data:
-  POSTGRES_URL: jdbc:postgresql://db-fast-food:5432/fast-food
+  POSTGRES_URL: jdbc:postgresql://dbfastfood:5432/fast-food
   POSTGRES_DB: fast-food
   POSTGRES_USER: postgres
