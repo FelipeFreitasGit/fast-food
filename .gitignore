@@ -36,3 +36,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Mac OS ###
+.DS_Store
+
+.terraform/
+.terraform.*
+terraform.tf*
