@@ -23,58 +23,6 @@ docker compose down
 ```
 
 ## Endpoints
-### Criação de Clientes
- ```bash
- curl --location 'http://localhost:8080/cliente' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "cpf":"45612378952",
-    "nome":"João da Silva",
-    "email":"joao@mock.com"
-}'
-```
-
-### Buscar Clientes por CPF
-```bash
-curl --request GET \
-  --url 'http://localhost:8080/cliente?cpf=45612378952' \
-  --header 'Content-Type: application/json'
-```
-### Cadastrar produto
-```bash
-curl --location 'http://localhost:8080/produto' \
---header 'Content-Type: application/json' \
---data '{
-    "descricao": "X-Bacon",
-    "categoria": "Lanche",
-    "preco": "45.56"
-}'
-```
-OBS: As categorias aceitas são LANCHE, BEBIDA, ACOMPANHAMENTO e SOBREMESA
-
-### Atualizar produto
-```bash
-curl --location --request PUT 'http://localhost:8080/produto/6c90811d-08ca-4116-a900-5a6f420ac1c1' \
---header 'Content-Type: application/json' \
---data '{    
-    "descricao": "X-Bacon",
-    "categoria": "LANCHE",
-    "preco": 34.00
-}'
-```
-
-### Buscar por categoria
-```bash
-curl --location 'http://localhost:8080/produto/categoria?nome=lanche' \
---header 'Content-Type: application/json'
-```
-
-### Remover produto
-```bash
-curl --location --request DELETE 'http://localhost:8080/produto/6c90811d-08ca-4116-a900-5a6f420ac1c1' \
---header 'Content-Type: application/json'
-```
-
 ### Criar checkout do pedido
 ```bash 
 curl --request POST \
@@ -102,13 +50,7 @@ curl --request POST \
 }'
 ```
 
-### Listar pedido por id
-```bash 
-curl --request GET \
-  --url http://localhost:8080/pedidos/eee0b41a-f582-4288-8548-9292ac95f2ec
-```
-
-### Acompanhar o status do pedido
+### Listar Pedido por ID acompanhado o status
 ```bash 
 curl --request GET \
   --url http://localhost:8080/pedidos/eee0b41a-f582-4288-8548-9292ac95f2ec
@@ -120,31 +62,44 @@ curl --request GET \
   --url http://localhost:8080/pedidos
 ```
 
-### Notificar o recebimento de pagamento
-```bash
-curl --request PUT \
---url http://localhost:8080/checkouts/76178a33-114f-44d8-b817-c5e06674a0ac/webhook/pagar \
-  --header 'Content-Type: application/json'
-```
-
-### Mudar o status do pedido para Em Preparação
-```bash
-curl --request PUT \
-  --url http://localhost:8080/pedidos/ba90138d-0fc1-4555-9e3f-5ca79a8e2cb5/mudar-status/preparacao
-```
-
-### Mudar o status do pedido para Pronto
-```bash
-curl --request PUT \
-  --http://localhost:8080/pedidos/ba90138d-0fc1-4555-9e3f-5ca79a8e2cb5/mudar-status/pronto
-```
-
 ### Mudar o status do pedido para Finalizado
 ```bash
 curl --request PUT \
-  --url http://localhost:8080/pedidos/eee0b41a-f582-4288-8548-9292ac95f2ec/mudar-status/confirmar-entrega
+  --url http://localhost:8080/pedidos/mudar-status/confirmar-entrega/eee0b41a-f582-4288-8548-9292ac95f2ec
 ```
 
-### Pipeline 4
+## Orquestração Saga do pagamento e producao do pedido
+Segue abaixo o fluxo de execução da orquestração da saga do pagamento e produção do pedido:
+1. O sistema de pedido realiza uma chamada sincrona ao sistema de pagamento para gerar um QRCode.
+2. O sistema de pagamento recebe uma notificação de pagamento e envia um evento de pagamento para a fila "notificacao-pagamento".  
+3. O sistema de pedido recebe o evento de pagamento, atualiza o status do pedido para recebido e envia um evento de produção para a fila "notificacao-pedido".
+4. O sistema de produção recebe o evento de produção, atualiza o status do pedido para em produção e após terminar o pedido envia um evento de pedido pronto para a fila "notificacao-pedido-status".
+5. O sistema de pedido recebe o evento de pedido pronto e envia para o cliente
 
+Segue abaixo o fluxo de execução da orquestração da saga do pagamento e produção do pedido em caso de erro:
+1. Se houver algum erro no pagamento o sistema de pagamento envia um evento de pagamento falho para a fila "notificacao-pagamento-error".
+2. O sistema de pedido recebe o evento de pagamento falho e atualiza o status do pedido para cancelado.
+3. Se houver algum erro na produção o sistema de produção envia um evento de produção falha para a fila "notificacao-pedido-status-error".
+4. O sistema de pedido recebe o evento de produção falha e atualiza o status do pedido para cancelado.
 
+Imagem do fluxo de execução da orquestração da saga do pagamento e produção do pedido.
+![Orquestração Saga do pagamento e producao do pedido](https://github.com/rafaelgil/fast-food/assets/2104773/7c048900-2b8f-4267-9676-0563fc37a743)
+
+### Saga escolhido
+Optamos pela implementação do padrão Saga Coreografada devido à sua simplicidade de implementação, especialmente no fluxo de pagamento e produção que envolve poucos serviços. A escolha por não ter um componente centralizado que coordena a comunicação entre os serviços foi um fator decisivo, uma vez que, se esse sistema falhar, toda a integração com os diversos sistemas será afetada. A documentação apresentada contribui para um melhor entendimento desse fluxo. Além disso, os sistemas apresentam um acoplamento fraco, já que a comunicação entre eles ocorre por meio de eventos.
+
+### Links
+Pasta com o vídeo da apresentação, relatório ZAP e RIPD 
+https://drive.google.com/drive/folders/1IrsVaKrz93rdKI3T6E3OLx8eRECKWt7x?usp=drive_link
+Apresentação SAGA
+https://drive.google.com/file/d/1NcjawOmb47IC9eSkRRBtV_rga9IUSXyY/view?usp=drive_link
+ZAP-Pagamento
+https://drive.google.com/file/d/1tgkte2XecRmntpPenlzVvN7vqlF20a0P/view?usp=drive_link
+ZAP-Pagamento-Solução
+https://drive.google.com/file/d/13NfeJFvibJcdy9F2GYzx94nbOA7JqwWz/view?usp=drive_link
+ZAP-Produto
+https://drive.google.com/file/d/1UQ9hMKu4khK09aT190tL6F7l0zr9mlTX/view?usp=drive_link
+ZAP-Producao
+https://drive.google.com/file/d/1H27A1b4NuqgGeKJhjUqrt1N8m8uvEpAd/view?usp=drive_link
+RIPD do sistema
+https://drive.google.com/file/d/1LILr3iFeZ2ETd2DpphMsA-Hc0QSXflaq/view?usp=drive_link
